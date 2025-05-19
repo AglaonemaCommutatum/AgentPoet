@@ -21,7 +21,7 @@ This project consists of three Python files:
 1. **Install required libraries:**
 
     ```bash
-    conda create -n crosstalk python==3.11
+    conda create -n poet python==3.11
     pip install -r requirements.txt 
     ```
 
