@@ -102,6 +102,7 @@ def text_to_speech_api(text):
         print(f"临时文件已创建: {temp_filename}")
 
         # 调用东雪莲语音API
+        # TODO: 这里需要调参
         try:
             print("正在调用东雪莲API生成语音...")
             client = Client("https://leafleafleaf-azuma-bert-vits2-0-2.hf.space/--replicas/wy9ux/")
@@ -141,7 +142,7 @@ def text_to_speech_api(text):
         print(f"语音生成过程中出错: {e}")
         return False
 
-
+# TODO:写个gui，最好增加图像模态输入
 def main():
     """运行诗歌生成器的主函数。"""
     print("=== 诗歌生成器 ===")
