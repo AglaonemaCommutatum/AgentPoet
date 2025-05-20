@@ -5,12 +5,14 @@ import subprocess
 import sys
 import pygame
 from pygame import mixer
+import gradio as gr
+
+import os
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com/"
 
 # 检查并尝试修复gradio_client
 try:
     from gradio_client import Client, handle_file
-
-    print("Gradio client导入成功")
 except Exception as e:
     print(f"导入gradio_client时出错: {e}")
     print("尝试重新安装gradio_client...")
@@ -41,7 +43,6 @@ poetry_model = genai.GenerativeModel('gemini-1.5-flash')
 pygame.init()
 mixer.init()
 
-
 def generate_poem(theme):
     """根据给定的主题使用语言模型生成诗歌。
 
@@ -54,8 +55,8 @@ def generate_poem(theme):
     prompt = (
         f"请以「{theme}」为主题，用简体中文创作一首优美的中文诗歌。"
         "诗歌应当意境深远，语言优美，富有感情。"
-        "请不要包含任何前言后语，直接返回诗歌的标题和内容。"
-        "请创作一首五言绝句或七言律诗"
+        "请不要包含任何前言后语，直接返回题目内容和诗歌内容。"
+        "请创作一首五言绝句或七言律诗，以文本直接输出，不带格式"
     )
 
     try:
@@ -67,28 +68,8 @@ def generate_poem(theme):
         print(f"生成诗歌时出错: {e}")
         return None
 
-
-def play_audio(audio_path):
-    """播放指定路径的音频文件。
-
-    Args:
-        audio_path: 音频文件的路径。
-    """
-    try:
-        print(f"正在播放音频: {audio_path}")
-        sound = mixer.Sound(audio_path)
-        duration = int(sound.get_length() * 1000)
-        sound.play()
-        pygame.time.wait(duration)
-        print("音频播放完成")
-        return True
-    except Exception as e:
-        print(f"播放音频时出错: {e}")
-        return False
-
-
 def text_to_speech_api(text):
-    """使用语音API将文本转换为语音。
+    """使用东雪莲语音API将文本转换为语音。
 
     Args:
         text: 要转换为语音的文本。
@@ -101,31 +82,31 @@ def text_to_speech_api(text):
 
         print(f"临时文件已创建: {temp_filename}")
 
-        # 调用丁真语音API
+        # 调用东雪莲语音API
+        # TODO: 这里需要调参
         try:
-            print("正在调用丁真API生成语音...")
             client = Client("CrawfordZhou/DZ-Bert-VITS2-2.3")
             result = client.predict(
-                    text=text,
-                    speaker="丁真",
-                    sdp_ratio=0.5,
-                    noise_scale=0.5,
-                    noise_scale_w=0.9,
-                    length_scale=1,
-                    language="ZH",
-                    reference_audio=handle_file('https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav'),
-                    emotion="Happy",
-                    prompt_mode="Text prompt",
-                    style_text=None,
-                    style_weight=0.7,
-                    api_name="/tts_fn"
+                text=text,
+                speaker="丁真",
+                sdp_ratio=0.5,
+                noise_scale=0.5,
+                noise_scale_w=0.9,
+                length_scale=1,
+                language="ZH",
+                reference_audio=handle_file(
+                    'https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav'),
+                emotion="Happy",
+                prompt_mode="Text prompt",
+                style_text=None,
+                style_weight=0.7,
+                api_name="/tts_fn"
             )
-            print(f"API返回结果: {result}")
 
             # 从结果中提取音频文件路径并播放
             if isinstance(result, tuple) and len(result) > 1:
                 audio_path = result[1]  # 获取音频文件路径
-                play_audio(audio_path)
+                return audio_path
             else:
                 print(f"API返回格式异常: {result}")
                 return False
@@ -146,7 +127,12 @@ def text_to_speech_api(text):
         print(f"语音生成过程中出错: {e}")
         return False
 
+def generate_and_play(theme):
+    poem = generate_poem(theme)
+    audio_path = text_to_speech_api(poem) if poem else None
+    return poem, audio_path
 
+# TODO:写个gui，最好增加图像模态输入
 def main():
     """运行诗歌生成器的主函数。"""
     print("=== 诗歌生成器 ===")
@@ -154,18 +140,14 @@ def main():
     print("输入 'exit' 或 'quit' 退出程序。")
 
     while True:
-        theme = input("\n请输入诗歌主题: ")
-        if theme.lower() in ["exit", "quit"]:
-            print("程序已退出。")
-            break
-
-        # 生成诗歌
-        poem = generate_poem(theme)
-        if poem:
-            # 使用东雪莲API转换诗歌为语音
-            print("正在生成语音...")
-            text_to_speech_api(poem)
-
+        iface = gr.Interface(
+            fn=generate_and_play,
+            inputs="text",
+            outputs=["text", "audio"],
+            title="诗歌生成器",
+            description="输入一个主题，生成相关的诗歌并播放语音。"
+        )
+        iface.launch()
 
 if __name__ == "__main__":
     main()
