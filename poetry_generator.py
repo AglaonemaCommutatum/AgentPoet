@@ -8,7 +8,7 @@ from pygame import mixer
 
 # 检查并尝试修复gradio_client
 try:
-    from gradio_client import Client
+    from gradio_client import Client, handle_file
 
     print("Gradio client导入成功")
 except Exception as e:
@@ -88,7 +88,7 @@ def play_audio(audio_path):
 
 
 def text_to_speech_api(text):
-    """使用东雪莲语音API将文本转换为语音。
+    """使用语音API将文本转换为语音。
 
     Args:
         text: 要转换为语音的文本。
@@ -101,20 +101,24 @@ def text_to_speech_api(text):
 
         print(f"临时文件已创建: {temp_filename}")
 
-        # 调用东雪莲语音API
-        # TODO: 这里需要调参
+        # 调用丁真语音API
         try:
-            print("正在调用东雪莲API生成语音...")
-            client = Client("https://leafleafleaf-azuma-bert-vits2-0-2.hf.space/--replicas/wy9ux/")
+            print("正在调用丁真API生成语音...")
+            client = Client("CrawfordZhou/DZ-Bert-VITS2-2.3")
             result = client.predict(
-                text,  # 输入文本内容
-                "东雪莲",  # 选择说话人
-                0.3,  # SDP/DP混合比
-                0.9,  # 感情
-                0.5,  # 音素长度
-                2,  # 语速
-                "ZH",  # 选择语言
-                api_name="/tts_fn"
+                    text=text,
+                    speaker="丁真",
+                    sdp_ratio=0.5,
+                    noise_scale=0.5,
+                    noise_scale_w=0.9,
+                    length_scale=1,
+                    language="ZH",
+                    reference_audio=handle_file('https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav'),
+                    emotion="Happy",
+                    prompt_mode="Text prompt",
+                    style_text=None,
+                    style_weight=0.7,
+                    api_name="/tts_fn"
             )
             print(f"API返回结果: {result}")
 
@@ -142,7 +146,7 @@ def text_to_speech_api(text):
         print(f"语音生成过程中出错: {e}")
         return False
 
-# TODO:写个gui，最好增加图像模态输入
+
 def main():
     """运行诗歌生成器的主函数。"""
     print("=== 诗歌生成器 ===")
